@@ -188,13 +188,26 @@ impl<T> LinkedList<T> {
         }
     }
     
-    pub fn push_back(&self, elem: T) {
+    pub fn push_back(&mut self, elem: T) {
         unsafe {
-            let new = Some(NonNull::new_unchecked(Box::into_raw(Box::new(Node {
-                front: None,
-                back: None,
-                elem,
-            }))));
+            let new = NonNull::new_unchecked(
+                Box::into_raw(
+                    Box::new(Node {
+                        front: None,
+                        back: None,
+                        elem,
+                    })
+                )
+            );
+            
+            if let Some(old) = self.back {
+                (*old.as_ptr()).back = Some(new);
+                (*new.as_ptr()).front = Some(old);
+            } else {
+                self.front = Some(new);
+            }
+            self.back = Some(new);
+            self.len += 1;
         }
     }
     
