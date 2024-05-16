@@ -356,6 +356,45 @@ mod test {
         assert_eq!(list.pop_back(), None);
         assert_eq!(list.len(), 0);
     }
+    
+    
+    #[test]
+    fn test_basic_back_and_front() {
+        let mut list = LinkedList::new();
+        
+        // Try to break an empty list
+        assert_eq!(list.len(), 0);
+        assert_eq!(list.pop_back(), None);
+        assert_eq!(list.len(), 0);
+        assert_eq!(list.pop_front(), None);
+        assert_eq!(list.len(), 0);
+        
+        // Try to break a one item list
+        list.push_front(0);
+        list.push_front(1);
+        list.push_front(2);
+        list.push_back(10);
+        list.push_back(11);
+        list.push_back(12);
+        
+        assert_eq!(list.len(), 6);
+        
+        assert_eq!(list.pop_front(), Some(0));
+        assert_eq!(list.pop_front(), Some(1));
+        assert_eq!(list.pop_back(), Some(12));
+        assert_eq!(list.pop_back(), Some(11));
+    
+        assert_eq!(list.len(), 2);
+        
+        assert_eq!(list.pop_front(), Some(2));
+        assert_eq!(list.pop_back(), Some(10));
+    
+        assert_eq!(list.len(), 0);
+    
+        assert_eq!(list.pop_front(), None);
+        assert_eq!(list.pop_back(), Some(10));
+  
+    }
 }
 
 
