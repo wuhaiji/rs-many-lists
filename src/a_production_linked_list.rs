@@ -1,8 +1,7 @@
-#![allow(unused)]
-
 use std::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
+use std::ops::Not;
 use std::ptr::NonNull;
 
 type Link<T> = Option<NonNull<Node<T>>>;
@@ -38,17 +37,15 @@ pub struct IterMut<'a, T> {
     _p: PhantomData<&'a T>,
 }
 
-impl<T: fmt::Display> fmt::Display for LinkedList<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut current_link = self.front;
+
+impl<T: Debug> Display for LinkedList<T>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "[")?;
-        
-        while let Some(current) = current_link {
-            // Unsafe block to dereference NonNull
-            let node = unsafe { current.as_ref() };
-            write!(f, "{}", node.elem)?;
-            current_link = node.back;
-            if current_link.is_some() {
+        let mut iter = self.iter();
+        for curr in iter {
+            write!(f, "{:?}", curr)?;
+            if self.len == 0 {
                 write!(f, ", ")?;
             }
         }
@@ -167,13 +164,19 @@ impl<'a, T> ExactSizeIterator for IterMut<'a, T> {
     }
 }
 
-impl<T> LinkedList<T> {
-    pub fn new() -> Self {
+impl<T> Default for LinkedList<T> {
+    fn default() -> Self {
         Self {
             front: None,
             back: None,
             len: 0,
         }
+    }
+}
+
+impl<T> LinkedList<T> {
+    pub fn new() -> Self {
+        Self::default()
     }
     
     pub fn len(&self) -> usize {
@@ -316,7 +319,7 @@ mod test {
     
     #[test]
     fn test_basic_front() {
-        let mut list = LinkedList::new();
+        let mut list = LinkedList::default();
         
         // Try to break an empty list
         assert_eq!(list.len(), 0);
@@ -356,7 +359,7 @@ mod test {
     
     #[test]
     fn test_basic_back() {
-        let mut list = LinkedList::new();
+        let mut list = LinkedList::default();
         
         // Try to break an empty list
         assert_eq!(list.len(), 0);
@@ -407,15 +410,20 @@ mod test {
         assert_eq!(list.len(), 0);
         
         // Try to break a one item list
-        list.push_front(0);
-        list.push_front(1);
         list.push_front(2);
+        println!("{list}");
+        list.push_front(1);
+        println!("{list}");
+        list.push_front(0);
+        println!("{list}");
         list.push_back(10);
+        println!("{list}");
         list.push_back(11);
+        println!("{list}");
         list.push_back(12);
+        println!("{list}");
         
         assert_eq!(list.len(), 6);
-        
         assert_eq!(list.pop_front(), Some(0));
         assert_eq!(list.pop_front(), Some(1));
         assert_eq!(list.pop_back(), Some(12));
@@ -436,6 +444,8 @@ mod test {
         list.push_front(0);
         
         assert_eq!(list.len(), 1);
+        
+        list.pop_front();
     }
 }
 
