@@ -61,7 +61,7 @@ impl<T> Drop for LinkedList<T> {
 
 impl<T> Iterator for LinkedList<T> {
     type Item = T;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         self.pop_front()
     }
@@ -69,7 +69,7 @@ impl<T> Iterator for LinkedList<T> {
 
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         if self.len == 0 {
             None
@@ -81,7 +81,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
             })
         }
     }
-    
+
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
@@ -89,7 +89,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
-    
+
     fn next(&mut self) -> Option<Self::Item> {
         // 不能通过节点(因为是双端迭代)判断，只能通过长度判读是否complete
         if self.len == 0 {
@@ -102,7 +102,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
             })
         }
     }
-    
+
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
@@ -174,15 +174,25 @@ impl<T> Default for LinkedList<T> {
     }
 }
 
+impl<T> FromIterator<T> for LinkedList<T> {
+    fn from_iter<A: IntoIterator<Item=T>>(iter: A) -> Self {
+        let mut list = Self::new();
+        for it in iter {
+            list.push_back(it);
+        }
+        list
+    }
+}
+
 impl<T> LinkedList<T> {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn len(&self) -> usize {
         self.len
     }
-    
+
     pub fn iter(&self) -> Iter<T> {
         Iter {
             front: self.front,
@@ -191,7 +201,7 @@ impl<T> LinkedList<T> {
             _p: PhantomData,
         }
     }
-    
+
     pub fn iter_mut(&self) -> IterMut<T> {
         IterMut {
             front: self.front,
@@ -200,11 +210,23 @@ impl<T> LinkedList<T> {
             _p: PhantomData,
         }
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
-    
+
+    pub fn peek_mut(&self) -> Option<&mut T> {
+        self.front.map(|n| unsafe {
+            &mut (*n.as_ptr()).elem
+        })
+    }
+
+    pub fn peek(&self) -> Option<&T> {
+        self.front.map(|n| unsafe {
+            &(*n.as_ptr()).elem
+        })
+    }
+
     pub fn push_front(&mut self, elem: T) {
         unsafe {
             let new = NonNull::new_unchecked(
@@ -216,7 +238,7 @@ impl<T> LinkedList<T> {
                     })
                 )
             );
-            
+
             if let Some(old) = self.front {
                 (*old.as_ptr()).front = Some(new);
                 (*new.as_ptr()).back = Some(old);
@@ -227,7 +249,7 @@ impl<T> LinkedList<T> {
             self.len += 1;
         }
     }
-    
+
     pub fn push_back(&mut self, elem: T) {
         unsafe {
             let new = NonNull::new_unchecked(
@@ -239,7 +261,7 @@ impl<T> LinkedList<T> {
                     })
                 )
             );
-            
+
             if let Some(old) = self.back {
                 (*old.as_ptr()).back = Some(new);
                 (*new.as_ptr()).front = Some(old);
@@ -250,7 +272,7 @@ impl<T> LinkedList<T> {
             self.len += 1;
         }
     }
-    
+
     pub fn pop_front(&mut self) -> Option<T> {
         unsafe {
             self.front.map(|n| {
@@ -267,7 +289,7 @@ impl<T> LinkedList<T> {
             })
         }
     }
-    
+
     pub(crate) fn pop_back(&mut self) -> Option<T> {
         unsafe {
             self.back.map(|n| {
@@ -284,27 +306,27 @@ impl<T> LinkedList<T> {
             })
         }
     }
-    
-    
+
+
     pub fn front(&self) -> Option<&T> {
         unsafe {
             self.front.map(|node| &(*node.as_ptr()).elem)
         }
     }
-    
+
     pub fn front_mut(&mut self) -> Option<&mut T> {
         unsafe {
             self.front.map(|node| &mut (*node.as_ptr()).elem)
         }
     }
-    
-    
+
+
     pub fn back(&self) -> Option<&T> {
         unsafe {
             self.back.map(|node| &(*node.as_ptr()).elem)
         }
     }
-    
+
     pub fn back_mut(&mut self) -> Option<&mut T> {
         unsafe {
             self.back.map(|node| &mut (*node.as_ptr()).elem)
@@ -316,16 +338,16 @@ impl<T> LinkedList<T> {
 #[cfg(test)]
 mod test {
     use super::LinkedList;
-    
+
     #[test]
     fn test_basic_front() {
         let mut list = LinkedList::default();
-        
+
         // Try to break an empty list
         assert_eq!(list.len(), 0);
         assert_eq!(list.pop_front(), None);
         assert_eq!(list.len(), 0);
-        
+
         // Try to break a one item list
         list.push_front(10);
         assert_eq!(list.len(), 1);
@@ -333,7 +355,7 @@ mod test {
         assert_eq!(list.len(), 0);
         assert_eq!(list.pop_front(), None);
         assert_eq!(list.len(), 0);
-        
+
         // Mess around
         list.push_front(10);
         assert_eq!(list.len(), 1);
@@ -356,16 +378,16 @@ mod test {
         assert_eq!(list.pop_front(), None);
         assert_eq!(list.len(), 0);
     }
-    
+
     #[test]
     fn test_basic_back() {
         let mut list = LinkedList::default();
-        
+
         // Try to break an empty list
         assert_eq!(list.len(), 0);
         assert_eq!(list.pop_back(), None);
         assert_eq!(list.len(), 0);
-        
+
         // Try to break a one item list
         list.push_back(10);
         assert_eq!(list.len(), 1);
@@ -373,7 +395,7 @@ mod test {
         assert_eq!(list.len(), 0);
         assert_eq!(list.pop_back(), None);
         assert_eq!(list.len(), 0);
-        
+
         // Mess around
         list.push_back(10);
         assert_eq!(list.len(), 1);
@@ -396,19 +418,19 @@ mod test {
         assert_eq!(list.pop_back(), None);
         assert_eq!(list.len(), 0);
     }
-    
-    
+
+
     #[test]
     fn test_basic_back_and_front() {
         let mut list = LinkedList::new();
-        
+
         // Try to break an empty list
         assert_eq!(list.len(), 0);
         assert_eq!(list.pop_back(), None);
         assert_eq!(list.len(), 0);
         assert_eq!(list.pop_front(), None);
         assert_eq!(list.len(), 0);
-        
+
         // Try to break a one item list
         list.push_front(2);
         println!("{list}");
@@ -422,30 +444,76 @@ mod test {
         println!("{list}");
         list.push_back(12);
         println!("{list}");
-        
+
         assert_eq!(list.len(), 6);
         assert_eq!(list.pop_front(), Some(0));
         assert_eq!(list.pop_front(), Some(1));
         assert_eq!(list.pop_back(), Some(12));
         assert_eq!(list.pop_back(), Some(11));
-        
+
         assert_eq!(list.len(), 2);
-        
+
         assert_eq!(list.pop_front(), Some(2));
         assert_eq!(list.pop_back(), Some(10));
-        
+
         assert_eq!(list.len(), 0);
-        
+
         assert_eq!(list.pop_front(), None);
         assert_eq!(list.pop_back(), None);
-        
+
         assert_eq!(list.len(), 0);
-        
+
         list.push_front(0);
-        
+
         assert_eq!(list.len(), 1);
-        
+
         list.pop_front();
+    }
+
+    #[test]
+    fn test_iter() {
+        let mut list = LinkedList::new();
+        list.push_back(1);
+        list.push_back(2);
+        list.push_back(3);
+        list.push_back(4);
+        list.push_back(5);
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&1));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next_back(), Some(&5));
+        assert_eq!(iter.next_back(), Some(&4));
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+    }
+
+    #[test]
+    fn test_iter_mut() {
+        let mut list = LinkedList::new();
+        list.push_back(1);
+        list.push_back(2);
+        list.push_back(3);
+        list.push_back(4);
+        list.push_back(5);
+
+        list = list.iter_mut().map(|v| (*v) * 10).collect();
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(), Some(&10));
+        assert_eq!(iter.next(), Some(&20));
+        assert_eq!(iter.next(), Some(&30));
+        assert_eq!(iter.next(), Some(&40));
+        assert_eq!(iter.next(), Some(&50));
+        assert_eq!(iter.next(), None);
+
+        // assert!(list.pop_front() == Some(10));
+        // list.peek_mut().map(|x| *x *= 10);
+        // assert!(list.peek() == Some(&5000));
+        // list.push_front(7);
+
+        // Drop it on the ground and let the dtor exercise itself
     }
 }
 
