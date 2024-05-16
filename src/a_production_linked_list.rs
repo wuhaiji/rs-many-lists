@@ -42,7 +42,7 @@ impl<T: Display> Display for LinkedList<T>
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "[")?;
-        let mut iter = self.iter();
+        let iter = self.iter();
         for curr in iter {
             write!(f, "{}", curr)?;
             if self.len == 0 {

@@ -1,21 +1,30 @@
-use std::fmt::Debug;
+use std::cell::RefCell;
+use std::fmt::{Debug, Display, Formatter};
+use std::marker::PhantomData;
+use std::rc::Rc;
 
-pub struct IterExt<I>(I) where I: Iterator;
-
-impl<I> IterExt<I>
-    where
-        I: Iterator,
+pub struct IterExt<ITER>
+    where ITER: Iterator
 {
-    pub fn new(iter: I) -> Self {
-        IterExt(iter)
-    }
-    
-    pub fn print_all(&mut self)
-        where
-            I::Item: Debug,
-    {
-        for item in &mut self.0 {
-            println!("{:?}", item);
+    iter: Rc<RefCell<ITER>>,
+}
+
+impl<ITER> Display for IterExt<ITER>
+    where
+        ITER: Iterator,
+        ITER::Item: Display, // Ensure that the items in the iterator can be displayed
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[")?;
+
+        let rc = self.iter.clone();
+
+        let mut ref_mut = rc.borrow_mut();
+
+        while let Some(n) = ref_mut.next() {
+            write!(f, "{},", n)?;
         }
+
+        write!(f, "]")
     }
 }
