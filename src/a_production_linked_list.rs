@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 
@@ -12,7 +14,6 @@ pub struct LinkedList<T> {
     back: Link<T>,
     len: usize,
 }
-
 
 struct Node<T> {
     /// front表示前一个节点
@@ -35,6 +36,24 @@ pub struct IterMut<'a, T> {
     back: Link<T>,
     len: usize,
     _p: PhantomData<&'a T>,
+}
+
+impl<T: fmt::Display> fmt::Display for LinkedList<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut current_link = self.front;
+        write!(f, "[")?;
+        
+        while let Some(current) = current_link {
+            // Unsafe block to dereference NonNull
+            let node = unsafe { current.as_ref() };
+            write!(f, "{}", node.elem)?;
+            current_link = node.back;
+            if current_link.is_some() {
+                write!(f, ", ")?;
+            }
+        }
+        write!(f, "]")
+    }
 }
 
 impl<T> Drop for LinkedList<T> {
@@ -159,6 +178,24 @@ impl<T> LinkedList<T> {
     
     pub fn len(&self) -> usize {
         self.len
+    }
+    
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
+            front: self.front,
+            back: self.back,
+            len: self.len,
+            _p: PhantomData,
+        }
+    }
+    
+    pub fn iter_mut(&self) -> IterMut<T> {
+        IterMut {
+            front: self.front,
+            back: self.back,
+            len: self.len,
+            _p: PhantomData,
+        }
     }
     
     pub fn is_empty(&self) -> bool {
@@ -383,17 +420,22 @@ mod test {
         assert_eq!(list.pop_front(), Some(1));
         assert_eq!(list.pop_back(), Some(12));
         assert_eq!(list.pop_back(), Some(11));
-    
+        
         assert_eq!(list.len(), 2);
         
         assert_eq!(list.pop_front(), Some(2));
         assert_eq!(list.pop_back(), Some(10));
-    
+        
         assert_eq!(list.len(), 0);
-    
+        
         assert_eq!(list.pop_front(), None);
-        assert_eq!(list.pop_back(), Some(10));
-  
+        assert_eq!(list.pop_back(), None);
+        
+        assert_eq!(list.len(), 0);
+        
+        list.push_front(0);
+        
+        assert_eq!(list.len(), 1);
     }
 }
 
