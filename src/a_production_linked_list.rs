@@ -54,17 +54,17 @@ impl<T: Debug> Debug for LinkedList<T> {
     }
 }
 
-// impl<T: PartialEq> PartialEq for LinkedList<T> {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.len() == other.len() && self.iter().eq(other)
-//     }
-//
-//     fn ne(&self, other: &Self) -> bool {
-//         self.len() != other.len() || self.iter().ne(other)
-//     }
-// }
+impl<T: PartialEq> PartialEq for LinkedList<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.len() == other.len() && self.iter().eq(other)
+    }
 
-// impl<T: Eq> Eq for LinkedList<T> { }
+    fn ne(&self, other: &Self) -> bool {
+        self.len() != other.len() || self.iter().ne(other)
+    }
+}
+
+impl<T: Eq> Eq for LinkedList<T> { }
 
 
 impl<T: Display> Display for LinkedList<T>
