@@ -507,11 +507,13 @@ mod test {
         assert_eq!(iter.next(), Some(&40));
         assert_eq!(iter.next(), Some(&50));
         assert_eq!(iter.next(), None);
-
-        // assert!(list.pop_front() == Some(10));
-        // list.peek_mut().map(|x| *x *= 10);
-        // assert!(list.peek() == Some(&5000));
-        // list.push_front(7);
+    
+    
+        let option = list.peek_mut();
+        let iter1 = option.iter();
+        option(|x| *x *= 10);
+        assert_eq!(list.peek(), Some(&100));
+        list.push_front(7);
 
         // Drop it on the ground and let the dtor exercise itself
     }
