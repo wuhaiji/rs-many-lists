@@ -1,5 +1,5 @@
+#![allow(unuser)]
 use std::cell::Cell;
-
 fn main() {
 
 }

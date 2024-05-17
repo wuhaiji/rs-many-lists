@@ -509,9 +509,7 @@ mod test {
         assert_eq!(iter.next(), None);
     
     
-        let option = list.peek_mut();
-        let iter1 = option.iter();
-        option(|x| *x *= 10);
+        list.peek_mut().map(|x| (*x) = (*x) * 10);
         assert_eq!(list.peek(), Some(&100));
         list.push_front(7);
 

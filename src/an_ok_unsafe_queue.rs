@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
 use std::ptr;
-use std::ptr::drop_in_place;
 
 type NodeRef<T> = *mut Node<T>;
 
@@ -218,16 +217,16 @@ mod test {
         list.push(2);
         list.push(3);
         
-        assert!(list.pop() == Some(1));
+        assert_eq!(list.pop(), Some(1));
         list.push(4);
-        assert!(list.pop() == Some(2));
+        assert_eq!(list.pop(), Some(2));
         list.push(5);
         
-        assert!(list.peek() == Some(&3));
+        assert_eq!(list.peek(), Some(&3));
         list.push(6);
         list.peek_mut().map(|x| *x *= 10);
-        assert!(list.peek() == Some(&30));
-        assert!(list.pop() == Some(30));
+        assert_eq!(list.peek(), Some(&30));
+        assert_eq!(list.pop(), Some(30));
         
         for elem in list.iter_mut() {
             *elem *= 100;
@@ -241,9 +240,9 @@ mod test {
         assert_eq!(iter.next(), None);
         assert_eq!(iter.next(), None);
         
-        assert!(list.pop() == Some(400));
+        assert_eq!(list.pop(), Some(400));
         list.peek_mut().map(|x| *x *= 10);
-        assert!(list.peek() == Some(&5000));
+        assert_eq!(list.peek(), Some(&5000));
         list.push(7);
         
         // Drop it on the ground and let the dtor exercise itself
