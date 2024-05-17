@@ -6,14 +6,6 @@ use std::ptr::NonNull;
 
 type Link<T> = Option<NonNull<Node<T>>>;
 
-pub struct LinkedList<T> {
-    /// front表示最前一个节点
-    front: Link<T>,
-    /// back表示最后一个节点
-    back: Link<T>,
-    len: usize,
-}
-
 struct Node<T> {
     /// front表示前一个节点
     front: Link<T>,
@@ -22,20 +14,57 @@ struct Node<T> {
     elem: T,
 }
 
-pub struct Iter<'a, T> {
+pub struct LinkedList<T> {
+    /// front表示最前一个节点
     front: Link<T>,
+    /// back表示最后一个节点
     back: Link<T>,
     len: usize,
-    _p: PhantomData<&'a T>,
 }
 
-
-pub struct IterMut<'a, T> {
-    front: Link<T>,
-    back: Link<T>,
-    len: usize,
-    _p: PhantomData<&'a T>,
+impl<T: Clone> Clone for LinkedList<T> {
+    fn clone(&self) -> Self {
+        let mut new_list = Self::new();
+        for item in self.iter() {
+            new_list.push_back(item.clone());
+        }
+        new_list
+    }
 }
+
+impl<T> Extend<T> for LinkedList<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for item in iter {
+            self.push_back(item);
+        }
+    }
+}
+
+impl<T> FromIterator<T> for LinkedList<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut list = Self::new();
+        list.extend(iter);
+        list
+    }
+}
+
+impl<T: Debug> Debug for LinkedList<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+
+// impl<T: PartialEq> PartialEq for LinkedList<T> {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.len() == other.len() && self.iter().eq(other)
+//     }
+//
+//     fn ne(&self, other: &Self) -> bool {
+//         self.len() != other.len() || self.iter().ne(other)
+//     }
+// }
+
+// impl<T: Eq> Eq for LinkedList<T> { }
 
 
 impl<T: Display> Display for LinkedList<T>
@@ -61,10 +90,187 @@ impl<T> Drop for LinkedList<T> {
 
 impl<T> Iterator for LinkedList<T> {
     type Item = T;
-
+    
     fn next(&mut self) -> Option<Self::Item> {
         self.pop_front()
     }
+}
+
+impl<T> LinkedList<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    
+    pub fn len(&self) -> usize {
+        self.len
+    }
+    
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
+            front: self.front,
+            back: self.back,
+            len: self.len,
+            _p: PhantomData,
+        }
+    }
+    
+    pub fn iter_mut(&self) -> IterMut<T> {
+        IterMut {
+            front: self.front,
+            back: self.back,
+            len: self.len,
+            _p: PhantomData,
+        }
+    }
+    
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+    
+    pub fn peek_mut(&self) -> Option<&mut T> {
+        self.front.map(|n| unsafe {
+            &mut (*n.as_ptr()).elem
+        })
+    }
+    
+    pub fn peek(&self) -> Option<&T> {
+        self.front.map(|n| unsafe {
+            &(*n.as_ptr()).elem
+        })
+    }
+    
+    pub fn push_front(&mut self, elem: T) {
+        unsafe {
+            let new = NonNull::new_unchecked(
+                Box::into_raw(
+                    Box::new(Node {
+                        front: None,
+                        back: None,
+                        elem,
+                    })
+                )
+            );
+            
+            if let Some(old) = self.front {
+                (*old.as_ptr()).front = Some(new);
+                (*new.as_ptr()).back = Some(old);
+            } else {
+                self.back = Some(new);
+            }
+            self.front = Some(new);
+            self.len += 1;
+        }
+    }
+    
+    pub fn push_back(&mut self, elem: T) {
+        unsafe {
+            let new = NonNull::new_unchecked(
+                Box::into_raw(
+                    Box::new(Node {
+                        front: None,
+                        back: None,
+                        elem,
+                    })
+                )
+            );
+            
+            if let Some(old) = self.back {
+                (*old.as_ptr()).back = Some(new);
+                (*new.as_ptr()).front = Some(old);
+            } else {
+                self.front = Some(new);
+            }
+            self.back = Some(new);
+            self.len += 1;
+        }
+    }
+    
+    pub fn pop_front(&mut self) -> Option<T> {
+        unsafe {
+            self.front.map(|n| {
+                let first_node = Box::from_raw(n.as_ptr());
+                let result = first_node.elem;
+                self.front = first_node.back;
+                if let Some(new) = self.front {
+                    (*new.as_ptr()).front = None;
+                } else {
+                    self.back = None;
+                }
+                self.len -= 1;
+                result
+            })
+        }
+    }
+    
+    pub(crate) fn pop_back(&mut self) -> Option<T> {
+        unsafe {
+            self.back.map(|n| {
+                let last_node = Box::from_raw(n.as_ptr());
+                let elem = last_node.elem;
+                self.back = last_node.front;
+                if let Some(new) = self.back {
+                    (*new.as_ptr()).back = None
+                } else {
+                    self.front = None;
+                }
+                self.len -= 1;
+                elem
+            })
+        }
+    }
+    
+    
+    pub fn front(&self) -> Option<&T> {
+        unsafe {
+            self.front.map(|node| &(*node.as_ptr()).elem)
+        }
+    }
+    
+    pub fn front_mut(&mut self) -> Option<&mut T> {
+        unsafe {
+            self.front.map(|node| &mut (*node.as_ptr()).elem)
+        }
+    }
+    
+    
+    pub fn back(&self) -> Option<&T> {
+        unsafe {
+            self.back.map(|node| &(*node.as_ptr()).elem)
+        }
+    }
+    
+    pub fn back_mut(&mut self) -> Option<&mut T> {
+        unsafe {
+            self.back.map(|node| &mut (*node.as_ptr()).elem)
+        }
+    }
+    
+    pub fn clear(&mut self) {
+        // Oh look it's drop again
+        while let Some(_) = self.pop_front() { }
+    }
+}
+
+
+pub struct Iter<'a, T> {
+    front: Link<T>,
+    back: Link<T>,
+    len: usize,
+    _p: PhantomData<&'a T>,
+}
+
+impl<'a, T> PartialEq for Iter<'a, T> {
+    fn eq(&self, other: &Self) -> bool {
+        todo!()
+    }
+}
+
+
+pub struct IterMut<'a, T> {
+    front: Link<T>,
+    back: Link<T>,
+    len: usize,
+    _p: PhantomData<&'a T>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -170,166 +376,6 @@ impl<T> Default for LinkedList<T> {
             front: None,
             back: None,
             len: 0,
-        }
-    }
-}
-
-impl<T> FromIterator<T> for LinkedList<T> {
-    fn from_iter<A: IntoIterator<Item=T>>(iter: A) -> Self {
-        let mut list = Self::new();
-        for it in iter {
-            list.push_back(it);
-        }
-        list
-    }
-}
-
-impl<T> LinkedList<T> {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn iter(&self) -> Iter<T> {
-        Iter {
-            front: self.front,
-            back: self.back,
-            len: self.len,
-            _p: PhantomData,
-        }
-    }
-
-    pub fn iter_mut(&self) -> IterMut<T> {
-        IterMut {
-            front: self.front,
-            back: self.back,
-            len: self.len,
-            _p: PhantomData,
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    pub fn peek_mut(&self) -> Option<&mut T> {
-        self.front.map(|n| unsafe {
-            &mut (*n.as_ptr()).elem
-        })
-    }
-
-    pub fn peek(&self) -> Option<&T> {
-        self.front.map(|n| unsafe {
-            &(*n.as_ptr()).elem
-        })
-    }
-
-    pub fn push_front(&mut self, elem: T) {
-        unsafe {
-            let new = NonNull::new_unchecked(
-                Box::into_raw(
-                    Box::new(Node {
-                        front: None,
-                        back: None,
-                        elem,
-                    })
-                )
-            );
-
-            if let Some(old) = self.front {
-                (*old.as_ptr()).front = Some(new);
-                (*new.as_ptr()).back = Some(old);
-            } else {
-                self.back = Some(new);
-            }
-            self.front = Some(new);
-            self.len += 1;
-        }
-    }
-
-    pub fn push_back(&mut self, elem: T) {
-        unsafe {
-            let new = NonNull::new_unchecked(
-                Box::into_raw(
-                    Box::new(Node {
-                        front: None,
-                        back: None,
-                        elem,
-                    })
-                )
-            );
-
-            if let Some(old) = self.back {
-                (*old.as_ptr()).back = Some(new);
-                (*new.as_ptr()).front = Some(old);
-            } else {
-                self.front = Some(new);
-            }
-            self.back = Some(new);
-            self.len += 1;
-        }
-    }
-
-    pub fn pop_front(&mut self) -> Option<T> {
-        unsafe {
-            self.front.map(|n| {
-                let first_node = Box::from_raw(n.as_ptr());
-                let result = first_node.elem;
-                self.front = first_node.back;
-                if let Some(new) = self.front {
-                    (*new.as_ptr()).front = None;
-                } else {
-                    self.back = None;
-                }
-                self.len -= 1;
-                result
-            })
-        }
-    }
-
-    pub(crate) fn pop_back(&mut self) -> Option<T> {
-        unsafe {
-            self.back.map(|n| {
-                let last_node = Box::from_raw(n.as_ptr());
-                let elem = last_node.elem;
-                self.back = last_node.front;
-                if let Some(new) = self.back {
-                    (*new.as_ptr()).back = None
-                } else {
-                    self.front = None;
-                }
-                self.len -= 1;
-                elem
-            })
-        }
-    }
-
-
-    pub fn front(&self) -> Option<&T> {
-        unsafe {
-            self.front.map(|node| &(*node.as_ptr()).elem)
-        }
-    }
-
-    pub fn front_mut(&mut self) -> Option<&mut T> {
-        unsafe {
-            self.front.map(|node| &mut (*node.as_ptr()).elem)
-        }
-    }
-
-
-    pub fn back(&self) -> Option<&T> {
-        unsafe {
-            self.back.map(|node| &(*node.as_ptr()).elem)
-        }
-    }
-
-    pub fn back_mut(&mut self) -> Option<&mut T> {
-        unsafe {
-            self.back.map(|node| &mut (*node.as_ptr()).elem)
         }
     }
 }
