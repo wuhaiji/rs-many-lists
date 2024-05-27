@@ -124,6 +124,14 @@ impl<T> LinkedList<T> {
         self.len
     }
 
+    pub fn cursor_mut(&mut self) -> CursorMut<T> {
+        CursorMut {
+            list: self,
+            cur: None,
+            index: None,
+        }
+    }
+
     pub fn iter(&self) -> Iter<T> {
         Iter {
             front: self.front,
@@ -393,13 +401,64 @@ impl<T> Default for LinkedList<T> {
 }
 
 unsafe impl<T: Send> Send for LinkedList<T> {}
+
 unsafe impl<T: Sync> Sync for LinkedList<T> {}
 
 unsafe impl<'a, T: Send> Send for Iter<'a, T> {}
+
 unsafe impl<'a, T: Sync> Sync for Iter<'a, T> {}
 
 unsafe impl<'a, T: Send> Send for IterMut<'a, T> {}
+
 unsafe impl<'a, T: Sync> Sync for IterMut<'a, T> {}
+
+
+pub struct CursorMut<'a, T> {
+    cur: Link<T>,
+    list: &'a mut LinkedList<T>,
+    index: Option<usize>,
+}
+
+trait OptionExtension<T> {
+    fn if_some<F>(&mut self, f: F) where F: FnOnce(&mut T);
+}
+
+impl<T> OptionExtension<T> for Option<T> {
+    fn if_some<F>(&mut self, f: F) where F: FnOnce(&mut T) {
+        match self {
+            None => {}
+            Some(t) => {
+                f(t)
+            }
+        }
+    }
+}
+
+impl<'a, T> CursorMut<'a, T> {
+    pub fn move_next(&mut self) {
+        if let Some(cur) = self.cur {
+            unsafe {
+                self.cur = (*cur.as_ptr()).back;
+                if self.cur.is_some() {
+                    // 这里
+                    self.index.as_mut().if_some(|t| {
+                        **t += 1;
+                    })
+                } else {
+                    // We just walked to the ghost, no more index
+                    self.index = None;
+                }
+            }
+        }else if !self.list.is_empty() {
+            // We're at the ghost, and there is a real front, so move to it!
+            self.cur = self.list.front;
+            self.index = Some(0)
+        } else {
+            // We're at the ghost, but that's the only element... do nothing.
+        }
+    }
+}
+
 
 #[allow(dead_code)]
 fn assert_properties() {
@@ -419,8 +478,8 @@ fn assert_properties() {
 
     fn linked_list_covariant<'a, T>(x: LinkedList<&'static T>) -> LinkedList<&'a T> { x }
     fn iter_covariant<'i, 'a, T>(x: Iter<'i, &'static T>) -> Iter<'i, &'a T> { x }
-
 }
+
 #[cfg(test)]
 mod test {
     use super::LinkedList;
