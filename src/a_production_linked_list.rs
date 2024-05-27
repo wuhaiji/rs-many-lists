@@ -273,7 +273,7 @@ impl<T> LinkedList<T> {
     }
 
     pub fn clear(&mut self) {
-        // Oh look it's drop again
+        // Oh, look its drop again
         while let Some(_) = self.pop_front() {}
     }
 }
