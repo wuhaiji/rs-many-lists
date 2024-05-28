@@ -4,15 +4,16 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 pub struct IterExt<ITER>
-    where ITER: Iterator
+where
+    ITER: Iterator,
 {
     iter: Rc<RefCell<ITER>>,
 }
 
 impl<ITER> Display for IterExt<ITER>
-    where
-        ITER: Iterator,
-        ITER::Item: Display, // Ensure that the items in the iterator can be displayed
+where
+    ITER: Iterator,
+    ITER::Item: Display, // Ensure that the items in the iterator can be displayed
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "[")?;

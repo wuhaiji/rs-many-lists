@@ -15,7 +15,6 @@ impl RefCountedFamily for RcFamily {
     fn new<T>(value: T) -> Self::Pointer<T> {
         Rc::new(value)
     }
-   
 }
 
 struct ArcFamily;
@@ -25,7 +24,6 @@ impl RefCountedFamily for ArcFamily {
     fn new<T>(value: T) -> Self::Pointer<T> {
         Arc::new(value)
     }
-
 }
 
 struct Container<P: RefCountedFamily, T> {
@@ -39,6 +37,6 @@ impl<P: RefCountedFamily, T> Container<P, T> {
 }
 
 #[test]
-fn t(){
+fn t() {
     let c = Container::<RcFamily, &str>::new("123");
 }
